@@ -1,11 +1,12 @@
-import { Document, Schema, Types } from "mongoose"
+import { Document, model, Schema, Types } from "mongoose"
+import { IUser } from "./user.model";
 
-interface IRestaurant extends Document {
+export interface IRestaurant extends Document {
     restaurantName:string
     location:string
     cuisine:string[],
     capcity:number
-    user:Object,
+    user:IUser,
 }
 
 
@@ -31,5 +32,13 @@ const restaurantSchema = new Schema<IRestaurant>({
         type: Types.ObjectId,
         ref:"User"
     }
-});
+},
+
+{
+    timestamps:true
+}
+);
+
+
+export  const Restaurant = model<IRestaurant>("Restaurant",restaurantSchema)
 
