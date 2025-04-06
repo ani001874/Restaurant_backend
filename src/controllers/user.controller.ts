@@ -25,6 +25,7 @@ const generateAccessTokenAndRefreshToken = async (
   return { accessToken, refreshToken };
 };
 
+// create an account for user
 const createAccount = asyncHandler(async (req, res) => {
   const { fullName, email, password, username } = req.body;
 
@@ -83,6 +84,9 @@ const createAccount = asyncHandler(async (req, res) => {
     );
 });
 
+
+// login user
+
 const loginAccount = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
 
@@ -135,6 +139,8 @@ const loginAccount = asyncHandler(async (req, res) => {
     .json(new ApiResponse<null>("User logged in successfully", null));
 });
 
+// userLogout
+
 const userLogout = asyncHandler(async (req: CustomRequest, res) => {
   const user: IUser = req.user;
 
@@ -161,6 +167,9 @@ const userLogout = asyncHandler(async (req: CustomRequest, res) => {
     .status(200)
     .json(new ApiResponse<null>("User Logout successfully", null));
 });
+
+
+// fetch user Details
 
 const getUserDetails = asyncHandler(async (req: CustomRequest, res) => {
   res

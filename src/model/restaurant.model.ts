@@ -6,7 +6,7 @@ export interface IRestaurant extends Document {
     location:string
     cuisine:string[],
     capcity:number
-    user:IUser,
+    owner:IUser,
 }
 
 
@@ -28,7 +28,7 @@ const restaurantSchema = new Schema<IRestaurant>({
         type: Number,
         required: true,
     },
-    user: {
+    owner: {
         type: Types.ObjectId,
         ref:"User"
     }
