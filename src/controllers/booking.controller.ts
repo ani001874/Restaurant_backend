@@ -9,12 +9,6 @@ import asyncHandler from "../utils/asyncHandler";
 // Book a resturant
 const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
   const { restaurantID } = req.params;
-  const user = req.user;
-
-  //check for user
-  if (!user) {
-    throw new ApiError("User is not found", 404);
-  }
 
   const {
     numberOfGuest,
@@ -92,4 +86,24 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
     );
 });
 
-export { bookARestaurant };
+
+
+
+// Cancel the reservation
+
+const cancelTheReservation = asyncHandler(async (req: CustomRequest, res) => {
+  const { restaurantID , bookedAt} = req.params;
+  console.log(req.user._id);
+
+  const bookedRestaurants = await Book.findOneAndDelete({
+    restaurant: restaurantID,
+    user: req.user._id,
+    bookedAt
+  });
+  console.log(bookedRestaurants);
+  res
+    .status(200)
+    .json(new ApiResponse<null>("Your reseravation cancel suceecfully", null));
+});
+
+export { bookARestaurant, cancelTheReservation };
