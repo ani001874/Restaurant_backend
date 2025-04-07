@@ -69,7 +69,7 @@ const createAccount = asyncHandler(async (req, res) => {
   res
     .cookie("accessToken", accessToken, {
       ...options,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge:  60 * 60 * 1000,
     })
     .cookie("refreshToken", refreshToken, {
       ...options,
@@ -129,7 +129,7 @@ const loginAccount = asyncHandler(async (req, res) => {
   res
     .cookie("accessToken", accessToken, {
       ...options,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge:  60 * 60 * 1000,
     })
     .cookie("refreshToken", refreshToken, {
       ...options,

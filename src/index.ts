@@ -12,9 +12,11 @@ app.use(cookieParser())
 
 import userRouter from './routes/user.routes'
 import restaurantRouter from './routes/restaurant.routes'
+import bookRestaurantRouter from './routes/booking.routes'
 
 
 app.use('/api/v1/users', userRouter)
 app.use('/api/v1/restaurant',restaurantRouter)
+app.use('/api/v1/bookRestaurant',bookRestaurantRouter)
 
 export default app

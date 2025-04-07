@@ -1,14 +1,14 @@
 import { model, Schema, Types } from "mongoose";
 import { IRestaurant } from "./restaurant.model";
 import { IUser } from "./user.model";
-import { ref } from "process";
 
-interface IBooking {
+
+export interface IBooking {
   restaurant: IRestaurant;
   user: IUser;
   bookedAt: Date;
   numberOfGuest: number;
-  bookedTime: Date;
+  duration:number
 }
 
 const bookingSchema = new Schema<IBooking>(
@@ -29,8 +29,8 @@ const bookingSchema = new Schema<IBooking>(
       type: Number,
       required: true,
     },
-    bookedTime: {
-      type: Date,
+    duration: {
+      type: Number,
       required: true,
     },
   },
