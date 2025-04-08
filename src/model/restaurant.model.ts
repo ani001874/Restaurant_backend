@@ -1,13 +1,15 @@
 import { Document, model, Schema, Types } from "mongoose"
 import { IUser } from "./user.model";
+import { IBooking } from "./booking.model";
 
 export interface IRestaurant extends Document {
     restaurantName:string
     location:string
-    cuisine:string[],
+    cuisine:string[]
     capcity:number
-    size:number,
-    owner:IUser,
+    size:number
+    owner:IUser
+    booking:Types.ObjectId[] | IBooking[];
 }
 
 
@@ -34,9 +36,11 @@ const restaurantSchema = new Schema<IRestaurant>({
         default:0
     },
     owner: {
-        type: Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref:"User"
-    }
+    },
+
+    booking:[{type:Schema.Types.ObjectId, ref:"Book"}]
 },
 
 {

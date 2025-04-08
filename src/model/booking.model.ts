@@ -5,10 +5,11 @@ import { IUser } from "./user.model";
 
 export interface IBooking {
   restaurant: IRestaurant;
-  user: IUser;
+  user: Types.ObjectId;
   bookedAt: Date;
   numberOfGuest: number;
-  duration:number
+  duration:number,
+  dispatchTime:Date
 }
 
 const bookingSchema = new Schema<IBooking>(
@@ -18,7 +19,7 @@ const bookingSchema = new Schema<IBooking>(
       ref: "Restaurant",
     },
     user: {
-      type: Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
     },
     bookedAt: {
@@ -33,6 +34,11 @@ const bookingSchema = new Schema<IBooking>(
       type: Number,
       required: true,
     },
+
+    dispatchTime: {
+      type:Date,
+      required:true
+    }
   },
   { timestamps: true }
 );

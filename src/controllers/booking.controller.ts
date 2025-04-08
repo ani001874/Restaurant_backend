@@ -1,4 +1,4 @@
-import { HydratedDocument } from "mongoose";
+import { HydratedDocument, Types } from "mongoose";
 import { Book, IBooking } from "../model/booking.model";
 import { Restaurant } from "../model/restaurant.model";
 import { CustomRequest } from "../types/user";
@@ -16,39 +16,23 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
     bookedAt,
   }: { numberOfGuest: number; duration: number; bookedAt: string } = req.body;
 
-  // find total number of booking and total guest at that restaurant  at requested time
-  // check duplicate user reserved at same time if yes cancel the reservation otherwise do proceed
-  // check number of  reservation at that time always less than capcity - TotalGuestThat tiem
+  // Delete that particulatr booking which dispacting time is over
+  // find total number of booking in that restaurant
+  // get the restaurant capacity value
+  //if anyone want to book at reserved time slot then cancel the reservation
+  // if total guest exceeds the capacity limit then check for time slot 
+ 
 
-  const TotalBookingAtGivenTime: HydratedDocument<IBooking>[] = await Book.find(
-    { restaurant: restaurantID, bookedAt }
-  ).populate("user");
+  const totalBooking: HydratedDocument<IBooking>[] = await Book.find({
+    restaurant: restaurantID,
+  }).populate("user");
 
-  const isDuplicateUser: boolean = TotalBookingAtGivenTime.some((booking) => {
-    return (
-      (booking.user as { _id: string })._id.toString() ===
-      req.user._id.toString()
-    );
-  });
-
-  if (isDuplicateUser) {
-    throw new ApiError(
-      "You have alreday reserved. You couldn't reserve again . if you want you can update the reservation",
-      503
-    );
-  }
-
-  const numberofGuestAtThatTime = TotalBookingAtGivenTime.reduce(
-    (accu, bookingObj) => {
-      let x = accu + bookingObj.numberOfGuest;
-      return x;
-    },
-    0
-  );
+  
+  // find  capacity of restaurants
 
   const restaurant = await Restaurant.findById(restaurantID, {
-    _id: 0,
     capcity: 1,
+    booking: 1,
   });
 
   if (!restaurant) {
@@ -57,50 +41,106 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
 
   const { capcity }: { capcity: number | null } = restaurant;
 
-  const vacentSeat = capcity - numberofGuestAtThatTime;
+  // Delete that particulatr booking which dispacting time is over
 
-  if (vacentSeat < numberOfGuest) {
-    throw new ApiError(
-      `we are sorry for now . we have ${vacentSeat} seats for now`,
-      503
-    );
+  for (let booking of totalBooking) {
+    if (new Date(booking.dispatchTime).getTime() <= Date.now()) {
+      await booking.deleteOne();
+      await Restaurant.findByIdAndUpdate(
+        restaurantID,
+        { $pull: { booking: booking._id } } // <- removes matching ObjectId
+      );
+      
+    }
+  }
+ // find total number of booking in that restaurant
+  const numberofGuestAtAnyTime = totalBooking.reduce((accu, bookingObj) => {
+    let x = accu + bookingObj.numberOfGuest;
+    return x;
+  }, 0);
+
+
+  // check for duplicate user who have booked alreday the given time slot
+
+
+  //if anyone want to book at reserved time slot then cancel the reservation
+
+  for (let booking of totalBooking) {
+    if (
+      new Date(booking.bookedAt).getTime() <= new Date(bookedAt).getTime() &&
+      new Date(bookedAt).getTime() < new Date(booking.dispatchTime).getTime()
+    ) {
+       if(booking.user._id.toString() === req.user._id.toString()) {
+          throw new ApiError("You have alreday reserved in this time slot", 503)
+       }
+    }
   }
 
-  const newBook = new Book({
-    restaurant: restaurantID,
-    bookedAt,
-    duration,
-    user: req.user._id,
+  if (numberofGuestAtAnyTime >= capcity) {
+    for (let booking of totalBooking) {
+      if (
+        new Date(booking.bookedAt).getTime() <= new Date(bookedAt).getTime() &&
+        new Date(bookedAt).getTime() < new Date(booking.dispatchTime).getTime()
+      ) {
+        throw new ApiError(
+          "The time slot is reserved already. You can't reserved in this time slot . please chosse another time slot",
+          503
+        );
+      }
+    }
+  }
+
+  // calculate dispacth time
+
+  const dispatchTime = new Date(bookedAt).getTime() + duration * 60 * 60 * 1000;
+
+  const newBooking = await Book.create({
+    restaurant: restaurant._id,
+    user: req.user?._id,
+    bookedAt: new Date(bookedAt),
     numberOfGuest,
+    duration,
+    dispatchTime: new Date(dispatchTime),
   });
 
-  await newBook.save();
+  //  Push booking _id to restaurant's booking array
+  (restaurant.booking as Types.ObjectId[]).push(
+    new Types.ObjectId(newBooking._id)
+  );
+  await restaurant.save();
 
   res
     .status(200)
     .json(
       new ApiResponse<HydratedDocument<IBooking>>(
         "Restaurant is booked successfully",
-        newBook
+        newBooking
       )
     );
+
+  
 });
-
-
-
 
 // Cancel the reservation
 
 const cancelTheReservation = asyncHandler(async (req: CustomRequest, res) => {
-  const { restaurantID , bookedAt} = req.params;
+  const { restaurantID, bookedAt } = req.params;
   console.log(req.user._id);
 
   const bookedRestaurants = await Book.findOneAndDelete({
     restaurant: restaurantID,
     user: req.user._id,
-    bookedAt
+    bookedAt,
   });
-  console.log(bookedRestaurants);
+  if (!bookedRestaurants) {
+    throw new ApiError("No matching booking found to cancel", 404);
+  }
+
+  await Restaurant.findByIdAndUpdate(restaurantID, {
+    $pull: { booking: bookedRestaurants._id },
+  });
+ 
+
   res
     .status(200)
     .json(new ApiResponse<null>("Your reseravation cancel suceecfully", null));
