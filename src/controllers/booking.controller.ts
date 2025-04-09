@@ -6,6 +6,38 @@ import ApiError from "../utils/apiError";
 import ApiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
 import { User } from "../model/user.model";
+import generateReservationEmail from "../utils/email";
+import { sendReservationSucessfullEmail } from "../utils/mailtrap";
+
+const createReservationEmail = (
+  bookedAt: string,
+  name: string,
+  restaurantName: string,
+  guests: number
+) => {
+  const bookingDate = new Date(bookedAt).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const bookingTime = new Date(bookedAt).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  return generateReservationEmail({
+    name, // Fixed typo from 'usernaem' to 'username'
+    restaurantName,
+    bookingDate,
+    bookingTime,
+    guests,
+  });
+};
 
 // Book a resturant
 const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
@@ -17,15 +49,12 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
     bookedAt,
   }: { numberOfGuest: number; duration: number; bookedAt: string } = req.body;
 
+  // if user try to book before the current time then throw an error
   if (new Date(bookedAt).getTime() < Date.now()) {
-    throw new ApiError("This time is gone0", 400);
+    throw new ApiError("This time is gone", 400);
   }
 
-  // Delete that particulatr booking which dispacting time is over
-  // find total number of booking in that restaurant
-  // get the restaurant capacity value
-  //if anyone want to book at reserved time slot then cancel the reservation
-  // if total guest exceeds the capacity limit then check for time slot
+  // find the how many booking is done
 
   const totalBooking: HydratedDocument<IBooking>[] = await Book.find({
     restaurant: restaurantID,
@@ -34,6 +63,7 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
   // find  capacity of restaurants
 
   const restaurant = await Restaurant.findById(restaurantID, {
+    restaurantName: 1,
     capcity: 1,
     booking: 1,
   }).populate("booking");
@@ -66,8 +96,6 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
 
   // check for duplicate user who have booked alreday the given time slot
 
-  //if anyone want to book at reserved time slot then cancel the reservation
-
   for (let booking of totalBooking) {
     if (
       new Date(booking.bookedAt).getTime() <= new Date(bookedAt).getTime() &&
@@ -79,6 +107,7 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
     }
   }
 
+  // check number of Guest at  given time slot , if number of guest is greater than capcity then throw an error otherwise proceed the booking
   let totalGuestAtGivenTimeSlot = 0;
 
   if (numberofGuestAtAnyTime >= capcity) {
@@ -103,6 +132,16 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
 
   const dispatchTime = new Date(bookedAt).getTime() + duration * 60 * 60 * 1000;
 
+  const confimationEmail = createReservationEmail(
+    bookedAt,
+    req.user.username,
+    restaurant.restaurantName,
+    numberOfGuest
+  )
+
+
+  await sendReservationSucessfullEmail("ironmantoni131@gmail.com",confimationEmail)
+
   const newBooking = await Book.create({
     restaurant: restaurant._id,
     user: req.user?._id,
@@ -112,25 +151,34 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
     dispatchTime: new Date(dispatchTime),
   });
 
+  
   //  Push booking _id to restaurant's booking array
   (restaurant.booking as Types.ObjectId[]).push(
     new Types.ObjectId(newBooking._id)
   );
   await restaurant.save();
- 
+
   // restaurants are alloted to req.user
   const user = await User.findById(req.user._id);
- 
+
   if (!user) {
     throw new ApiError("No such user found", 404);
   }
 
- const isUserVisit = user.restaurants.some((id) => id.toString() === new Types.ObjectId(restaurantID).toString())
- console.log(isUserVisit)
- if(!isUserVisit) {
-   user.restaurants.push(new Types.ObjectId(restaurantID))
-   await user.save({validateBeforeSave:false})
- }
+  const isUserVisit = user.restaurants.some(
+    (id) => id.toString() === new Types.ObjectId(restaurantID).toString()
+  );
+  console.log(isUserVisit);
+  if (!isUserVisit) {
+    user.restaurants.push(new Types.ObjectId(restaurantID));
+    await user.save({ validateBeforeSave: false });
+  }
+
+
+  
+
+
+  //send a Response
   res
     .status(200)
     .json(
