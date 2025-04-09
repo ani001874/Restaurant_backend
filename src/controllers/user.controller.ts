@@ -6,7 +6,6 @@ import asyncHandler from "../utils/asyncHandler";
 import { CookieOptions } from "express";
 import { CustomRequest } from "../types/user";
 
-
 const generateAccessTokenAndRefreshToken = async (
   userId: unknown
 ): Promise<{ accessToken: string; refreshToken: string }> => {
@@ -69,7 +68,7 @@ const createAccount = asyncHandler(async (req, res) => {
   res
     .cookie("accessToken", accessToken, {
       ...options,
-      maxAge:  60 * 60 * 1000,
+      maxAge: 60 * 60 * 1000,
     })
     .cookie("refreshToken", refreshToken, {
       ...options,
@@ -83,7 +82,6 @@ const createAccount = asyncHandler(async (req, res) => {
       )
     );
 });
-
 
 // login user
 
@@ -129,7 +127,7 @@ const loginAccount = asyncHandler(async (req, res) => {
   res
     .cookie("accessToken", accessToken, {
       ...options,
-      maxAge:  60 * 60 * 1000,
+      maxAge: 60 * 60 * 1000,
     })
     .cookie("refreshToken", refreshToken, {
       ...options,
@@ -168,7 +166,6 @@ const userLogout = asyncHandler(async (req: CustomRequest, res) => {
     .json(new ApiResponse<null>("User Logout successfully", null));
 });
 
-
 // fetch user Details
 
 const getUserDetails = asyncHandler(async (req: CustomRequest, res) => {
@@ -182,4 +179,36 @@ const getUserDetails = asyncHandler(async (req: CustomRequest, res) => {
     );
 });
 
-export { createAccount, loginAccount, userLogout, getUserDetails };
+const getReservationDetails = asyncHandler(async (req: CustomRequest, res) => {
+  const user = await User.findById(req.user._id)
+    .select("restaurants")
+    .populate({
+      path: "restaurants",
+      select: "restaurantName location -_id",
+      populate: {
+        path: "booking",
+        model: "Book",
+        select: "numberOfGuest bookedAt dispatchTime -_id",
+      },
+    });
+  console.log(user);
+  if (!user) {
+    throw new ApiError("User not found", 404);
+  }
+  res
+    .status(200)
+    .json(
+      new ApiResponse<HydratedDocument<IUser>>(
+        "Reservation details are fetched successfully",
+        user
+      )
+    );
+});
+
+export {
+  createAccount,
+  loginAccount,
+  userLogout,
+  getUserDetails,
+  getReservationDetails,
+};

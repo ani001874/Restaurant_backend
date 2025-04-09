@@ -1,8 +1,13 @@
-import { Document, Model, model, Schema, ValidatorProps } from "mongoose";
+import {
+  Document,
+  Model,
+  model,
+  Schema,
+  Types,
+  ValidatorProps,
+} from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt, { JwtPayload } from "jsonwebtoken";
-
-
 
 export interface IUser extends Document {
   fullName: string;
@@ -11,18 +16,16 @@ export interface IUser extends Document {
   username: string;
   profilePic: string;
   refreshToken: string;
+  restaurants: Types.ObjectId[];
 }
 
 interface IUserMethods {
   checkPassword: (password: string) => Promise<boolean>;
   generateAccessToken: () => string;
   generateRefreshToken: () => string;
- 
 }
 
 type UserModel = Model<IUser, {}, IUserMethods>;
-
-
 
 const userSchema = new Schema<IUser, UserModel, IUserMethods>(
   {
@@ -63,6 +66,7 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
       type: String,
       default: "",
     },
+    restaurants: [{ type: Schema.Types.ObjectId, ref: "Restaurant" }],
   },
   {
     timestamps: true,
@@ -76,11 +80,9 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-
 userSchema.methods.checkPassword = async function (
   password: string
 ): Promise<boolean> {
-
   return await bcrypt.compare(password, this.password);
 };
 
@@ -109,8 +111,5 @@ userSchema.methods.generateRefreshToken = function (): string {
     } as jwt.SignOptions
   );
 };
-
-
-
 
 export const User = model<IUser, UserModel>("User", userSchema);

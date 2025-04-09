@@ -40,12 +40,71 @@ const openRestaurant = asyncHandler(async (req: CustomRequest, res) => {
 
   await restaurant.save();
 
-  res.status(201).json(
-    new ApiResponse<HydratedDocument<IRestaurant>>(
-      "Restaurant created successfully",
-      restaurant
-    )
-  );
+  res
+    .status(201)
+    .json(
+      new ApiResponse<HydratedDocument<IRestaurant>>(
+        "Restaurant created successfully",
+        restaurant
+      )
+    );
 });
 
-export { openRestaurant };
+const getAllRestaurants = asyncHandler(async (req, res) => {
+  const restaurantDetails = await Restaurant.aggregate([
+    {
+      $lookup: {
+        from: "books",
+        localField: "booking",
+        foreignField: "_id",
+        as: "booking",
+      },
+    },
+    {
+      $addFields: {
+        activeBooking: {
+          $filter: {
+            input: "$booking",
+            as: "b",
+            cond: {
+              $and: [
+                { $lte: ["$$b.bookedAt", "$$NOW"] },
+                { $gte: ["$$b.dispatchTime", "$$NOW"] },
+              ],
+            },
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        totalCustomer: {
+          $reduce: {
+            input: "$activeBooking",
+            initialValue: 0,
+            in: { $add: ["$$value", "$$this.numberOfGuest"] },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        restaurantName: 1,
+        location: 1,
+        capacity: "$capcity",
+        totalCustomer: 1,
+        freeSeat: {
+          $subtract: ["$capcity", { $ifNull: ["$totalCustomer", 0] }],
+        },
+      },
+    },
+  ]);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse<any[]>("all restaurants are shown", restaurantDetails)
+    );
+});
+
+export { openRestaurant, getAllRestaurants };
