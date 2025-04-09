@@ -14,7 +14,6 @@ export interface IUser extends Document {
   email: String;
   password: string;
   username: string;
-  profilePic: string;
   refreshToken: string;
   restaurants: Types.ObjectId[];
 }
@@ -57,10 +56,7 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
       type: String,
       required: true,
     },
-    profilePic: {
-      type: String,
-      default: "",
-    },
+  
 
     refreshToken: {
       type: String,
