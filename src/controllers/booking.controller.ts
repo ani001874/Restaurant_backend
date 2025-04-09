@@ -22,7 +22,7 @@ const createReservationEmail = (
     year: "numeric",
   });
 
-  const bookingTime = new Date(bookedAt).toLocaleDateString("en-IN", {
+  const bookingTime = new Date(bookedAt).toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
