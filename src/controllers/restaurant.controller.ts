@@ -50,8 +50,16 @@ const openRestaurant = asyncHandler(async (req: CustomRequest, res) => {
     );
 });
 
+interface RestaurantsDetailsType {
+  restaurantName: string,
+  location: string,
+  capacity: number,
+  totalCustomer: number,
+  freeSeat: number 
+}
+
 const getAllRestaurants = asyncHandler(async (req, res) => {
-  const restaurantDetails = await Restaurant.aggregate([
+  const restaurantDetails:RestaurantsDetailsType[] = await Restaurant.aggregate([
     {
       $lookup: {
         from: "books",
@@ -103,7 +111,7 @@ const getAllRestaurants = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(
-      new ApiResponse<any[]>("all restaurants are shown", restaurantDetails)
+      new ApiResponse<RestaurantsDetailsType[]>("all restaurants are shown", restaurantDetails)
     );
 });
 
