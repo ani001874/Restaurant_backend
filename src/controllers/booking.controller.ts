@@ -140,7 +140,7 @@ const bookARestaurant = asyncHandler(async (req: CustomRequest, res) => {
   )
 
 
-  await sendReservationSucessfullEmail("ironmantoni131@gmail.com",confimationEmail)
+  await sendReservationSucessfullEmail(req.user.email,confimationEmail)
 
   const newBooking = await Book.create({
     restaurant: restaurant._id,
